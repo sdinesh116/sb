@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+    parameters {
+		string(name: 'SUBSCRIPTION_ID', defaultValue: '0387ddf0-eea2-4265-a843-4f7c61f6ab68', description: 'provide the subscription id')
+		string(name: 'CLIENT_ID', defaultValue: 'ac84547b-edb4-4456-9924-39b844141c17', description: 'input tag for ansible command.')
+		string(name: 'CLIENT_SECRET', defaultValue: 'Wdg9Ec5VUndbvTFZmmRpRdyKyxilyPKHAC7/aLPFj+w=', description: 'input tag for ansible command.')
+		string(name: 'TENANT_ID', defaultValue: '7e6e7926-e449-4ba1-bbb0-0daa747681c4', description: 'input tag for ansible command.')
+		string(name: 'RESOURCE_GROUP', defaultValue: 'myResourceGroup', description: 'input tag for ansible command.')
+		string(name: 'LOCATION', defaultValue: 'eastus', description: 'provide the location')
+		string(name: 'VN_NAME', defaultValue: '', description: 'provide the virtual network name')
+		string(name: 'SB_NAME', defaultValue: '', description: 'provide the subnet name')
+		string(name: 'SB_CIDR', defaultValue: '', description: 'provide the subnet cidr')		
+		
+	}
+   stages {
+   stage('Preparation') {
+   steps {
+      git credentialsId: 'git', url: 'https://github.com/sdinesh116/sb.git'
+	  sh "export PATH=/usr/local/bin/:$PATH"
+	  sh "terraform init"
+    }
+   }
+   stage('manipulate the tf files') {
+      steps {
+      // manipulate the variables files 
+      sh 'sed -ie "s|SUBSCRIPTIONID|$SUBSCRIPTION_ID|g" variables.tf'
+      sh 'sed -ie "s|CLIENTID|$CLIENT_ID|g" variables.tf'
+      sh 'sed -ie "s|CLIENTSECRET|$CLIENT_SECRET|g" variables.tf'
+      sh 'sed -ie "s|TENANTID|$TENANT_ID|g" variables.tf'
+	  sh 'sed -ie "s|RESOURCEGROUP|$RESOURCE_GROUP|g" variables.tf'
+  	  sh 'sed -ie "s|LOCATION|$LOCATION|g" variables.tf'
+  	  sh 'sed -ie "s|VNNAME|$VN_NAME|g" variables.tf'
+  	  sh 'sed -ie "s|SBNAME|$SB_NAME|g" variables.tf'
+   	  sh 'sed -ie "s|SBCIDR|$SB_CIDR|g" variables.tf'
+	  sh 'cat variables.tf'
+    }
+	}
+   stage('terrafrom plan') {
+   steps{
+      // perfrm the terraform plan
+	  sh "terraform plan -out=terraform.plan"
+	  sh "cat terraform.plan"
+      input 'Continue with the terraform plan ?'
+   }
+   }
+   stage('terrafrom apply') {
+   steps {
+      // perfrm the terraform plan 
+	  sh "terraform apply -auto-approve"
+   }
+   }
+   }
+}
